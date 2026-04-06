@@ -1,12 +1,8 @@
 from flask import Flask, request, send_file, jsonify
 import yt_dlp
 import os
-import subprocess
 
 app = Flask(__name__)
-
-# 🔥 Atualiza yt-dlp ao iniciar
-subprocess.run(["pip", "install", "-U", "yt-dlp"])
 
 @app.route("/")
 def home():
@@ -36,7 +32,7 @@ def baixar():
         return jsonify({"erro": str(e)}), 500
 
 
-# 🔥 CORREÇÃO PARA RENDER (IMPORTANTE)
+# 🔥 CORRETO PARA RENDER
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
