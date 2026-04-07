@@ -1,45 +1,16 @@
-import requests
-from kivymd.app import MDApp
-from kivy.lang import Builder
-from kivy.clock import Clock
-from threading import Thread
-import os
-
-class AppVideo(MDApp):
-
-    def build(self):
-        return Builder.load_file("main.kv")
-
-    def baixar(self):
-        url = self.root.ids.url_input.text
-
-        if not url:
-            self.root.ids.status.text = "⚠️ Cole um link"
-            return
-
-        self.root.ids.status.text = "⏳ Baixando..."
-        self.root.ids.barra.value = 0
-
-        Thread(target=self.download, args=(url,)).start()
-
-    def download(self, url):
-        try:
-            link = f"https://vidora-server-mwdn.onrender.com/baixar?url={url}"
-
-            resposta = requests.get(link).json()
-
-            if "erro" in resposta:
-             …
-[00:40, 07/04/2026] Weyne Borges: https://vidora-server-mwdn.onrender.com/baixar?url=https://youtube.com/shorts/CCxMuJqaFUQ
-[00:49, 07/04/2026] Weyne Borges: from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_file
 import yt_dlp
 import os
+import uuid
 
 app = Flask(_name_)
 
+# pasta temporária
+DOWNLOAD_DIR = "/tmp"
+
 @app.route("/")
 def home():
-    return "🔥 Vidora server online"
+    return "Servidor Vidora online 🚀"
 
 
 @app.route("/baixar")
@@ -47,54 +18,74 @@ def baixar():
     url = request.args.get("url")
 
     if not url:
-        return jsonify({"erro": "URL não enviada"})
+        return jsonify({"erro": "❌ URL não fornecida"}), 400
 
     try:
-        # 🔥 CONFIG DO YT-DLP (CORRIGIDO)
+        filename = str(uuid.uuid4())
+
+        caminho_saida = os.path.join(DOWNLOAD_DIR, f"{filename}.%(ext)s")
+
         ydl_opts = {
-            'format': 'bestvideo+bestaudio/best',
-            'outtmpl': '/tmp/%(title)s.%(ext)s',
+            "format": "bestvideo+bestaudio/best",
+            "outtmpl": caminho_saida,
 
-            # 🔥 COOKIE COM CAMINHO CORRETO (ESSENCIAL)
-            'cookiefile': os.path.join(os.getcwd(), 'cookies.txt'),
+            # 🔥 COOKIES (ESSENCIAL PRO YOUTUBE)
+            "cookiefile": os.path.join(os.getcwd(), "cookies.txt"),
 
-            # 🔥 ANTI BLOQUEIO
-            'http_headers': {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
+            # evitar bloqueio
+            "http_headers": {
+                "User-Agent": "Mozilla/5.0"
             },
 
-            'quiet': True,
-            'noplaylist': True,
+            "quiet": True,
+            "noplaylist": True,
         }
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=True)
+            file_path = ydl.prepare_filename(info)
 
-        return jsonify({
-            "status": "ok",
-            "titulo": info.get("title", "Sem título")
-        })
+        # verifica se baixou mesmo
+        if not os.path.exists(file_path):
+            return jsonify({
+                "erro": "❌ Falha ao localizar o arquivo baixado"
+            }), 500
+
+        return send_file(file_path, as_attachment=True)
 
     except Exception as e:
-        erro = str(e)
+        erro_str = str(e)
 
-        # 🔥 TRATAMENTO PROFISSIONAL
-        if "Sign in to confirm" in erro:
+        # 🎯 tratamento inteligente de erros
+        if "Sign in to confirm" in erro_str or "cookies" in erro_str:
             return jsonify({
-                "erro": "⚠️ YouTube bloqueou acesso",
-                "detalhe": "Atualize cookies.txt"
-            })
+                "erro": "⚠️ YouTube bloqueou (cookies inválidos ou expirados)",
+                "detalhe": erro_str
+            }), 403
 
-        if "Video unavailable" in erro:
+        elif "Video unavailable" in erro_str:
             return jsonify({
                 "erro": "❌ Vídeo indisponível"
-            })
+            }), 404
 
-        return jsonify({
-            "erro": "❌ erro geral",
-            "detalhe": erro
-        })
+        elif "Private video" in erro_str:
+            return jsonify({
+                "erro": "🔒 Vídeo privado"
+            }), 403
+
+        elif "age" in erro_str.lower():
+            return jsonify({
+                "erro": "🔞 Vídeo com restrição de idade"
+            }), 403
+
+        else:
+            return jsonify({
+                "erro": "❌ Erro ao baixar vídeo",
+                "detalhe": erro_str
+            }), 500
 
 
+# 🔥 necessário pro Render
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=10000)
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
