@@ -1,4 +1,4 @@
-[00:38, 07/04/2026] Weyne Borges: import requests
+import requests
 from kivymd.app import MDApp
 from kivy.lang import Builder
 from kivy.clock import Clock
