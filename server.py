@@ -1,4 +1,4 @@
-[00:12, 07/04/2026] Weyne Borges: from kivymd.app import MDApp
+from kivymd.app import MDApp
 from kivy.lang import Builder
 import webbrowser
 
