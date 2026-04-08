@@ -3,7 +3,7 @@ import yt_dlp
 import os
 import uuid
 
-app = Flask(__name__)
+app = Flask(_name_)
 
 @app.route("/")
 def home():
@@ -17,7 +17,6 @@ def baixar():
         return jsonify({"erro": "URL não enviada"})
 
     try:
-        # Nome único
         nome = str(uuid.uuid4())
         caminho = f"/tmp/{nome}.mp4"
 
@@ -40,6 +39,3 @@ def baixar():
 
     except Exception as e:
         return jsonify({"erro": str(e)})
-
-if __name__ == "__main__":
-    app.run()
