@@ -3,7 +3,7 @@ import yt_dlp
 import os
 import uuid
 
-app = Flask(_name_)
+app = Flask(__name__)
 
 @app.route("/")
 def home():
